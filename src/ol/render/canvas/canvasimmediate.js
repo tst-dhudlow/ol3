@@ -484,6 +484,9 @@ ol.render.canvas.Immediate.prototype.drawGeometry = function(geometry) {
     case ol.geom.GeometryType.CIRCLE:
       this.drawCircle(/** @type {ol.geom.Circle} */ (geometry));
       break;
+    case ol.geom.GeometryType.RECTANGLE:
+      this.drawPolygon(/** @type {ol.geom.Polygon} */ (geometry));
+      break;
     default:
       goog.asserts.fail('Unsupported geometry type: ' + type);
   }

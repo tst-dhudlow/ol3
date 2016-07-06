@@ -308,6 +308,11 @@ ol.style.createDefaultEditingStyles = function() {
           styles[ol.geom.GeometryType.LINE_STRING]
       );
 
+  styles[ol.geom.GeometryType.RECTANGLE] =
+      styles[ol.geom.GeometryType.POLYGON].concat(
+          styles[ol.geom.GeometryType.LINE_STRING]
+      );
+
 
   styles[ol.geom.GeometryType.POINT] = [
     new ol.style.Style({

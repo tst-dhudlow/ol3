@@ -224,6 +224,7 @@ ol.interaction.Modify = function(options) {
     'MultiLineString': this.writeMultiLineStringGeometry_,
     'MultiPolygon': this.writeMultiPolygonGeometry_,
     'Circle': this.writeCircleGeometry_,
+    'Rectangle': this.writeRectangleGeometry_,
     'GeometryCollection': this.writeGeometryCollectionGeometry_
   };
 
@@ -474,6 +475,41 @@ ol.interaction.Modify.prototype.writePolygonGeometry_ = function(feature, geomet
 
 /**
  * @param {ol.Feature} feature Feature
+ * @param {ol.geom.Rectangle} geometry Geometry.
+ * @private
+ */
+ol.interaction.Modify.prototype.writeRectangleGeometry_ = function(feature, geometry) {
+  var rings = geometry.getCoordinates();
+  var coordinates, i, ii, j, jj, segment, segmentData, prevSegmentData = null, segments = [];
+  for (j = 0, jj = rings.length; j < jj; ++j) {
+    coordinates = rings[j];
+    for (i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+      segment = coordinates.slice(i, i + 2);
+      segmentData = /** @type {ol.ModifySegmentDataType} */ ({
+        feature: feature,
+        geometry: geometry,
+        depth: [j],
+        index: i,
+        segment: segment,
+        prevSegment: prevSegmentData
+      });
+      // Create bi-directional linked list
+      if (prevSegmentData) {
+        prevSegmentData.nextSegment = segmentData;
+      }
+      prevSegmentData = segmentData;
+      segments.push(segmentData);
+      this.rBush_.insert(ol.extent.boundingExtent(segment), segmentData);
+    }
+    // Loop the linked list
+    segments[0].prevSegment = segmentData;
+    segmentData.nextSegment = segments[0];
+  }
+};
+
+
+/**
+ * @param {ol.Feature} feature Feature
  * @param {ol.geom.MultiPolygon} geometry Geometry.
  * @private
  */
@@ -636,7 +672,13 @@ ol.interaction.Modify.handleDownEvent_ = function(evt) {
         componentSegments[uid][1] = segmentDataMatch;
       } else if (goog.getUid(segment) in this.vertexSegments_ &&
           (!componentSegments[uid][0] && !componentSegments[uid][1])) {
-        insertVertices.push([segmentDataMatch, vertex]);
+            if (segmentDataMatch.geometry.getType() === ol.geom.GeometryType.RECTANGLE) {
+              // For rectangles, don't add a vertex, just push the segment being dragged.
+              // Use -1 for index since both vertices apply equally.
+              this.dragSegments_.push([segmentDataMatch, -1]);
+            } else {
+              insertVertices.push([segmentDataMatch, vertex]);
+            }
       }
     }
     if (insertVertices.length) {
@@ -698,6 +740,50 @@ ol.interaction.Modify.handleDragEvent_ = function(evt) {
         coordinates[depth[0]][segmentData.index + index] = vertex;
         segment[index] = vertex;
         break;
+      case ol.geom.GeometryType.RECTANGLE:
+        var draggingSide = index === -1;
+        var dz = depth[0];
+        var cIndex = draggingSide ? segmentData.index : segmentData.index + index;
+        coordinates = geometry.getCoordinates();
+        var iNext = (cIndex % 4) + 1;
+        var iPrev = (cIndex - 1 + 4) % 4;
+        if (draggingSide) {
+          iPrev = cIndex;
+        }
+        var nextCoord = cIndex % 2;
+        var prevCoord = (cIndex + 1) % 2;
+        if (draggingSide) {
+          prevCoord = nextCoord;
+        }
+        if (iNext === 4) {
+          coordinates[dz][0][nextCoord] = vertex[nextCoord];
+        } else if (iPrev === 0) {
+          coordinates[dz][4][prevCoord] = vertex[prevCoord];
+        }
+        coordinates[dz][iNext][nextCoord] = vertex[nextCoord];
+        coordinates[dz][iPrev][prevCoord] = vertex[prevCoord];
+
+        if (!draggingSide) {
+          coordinates[dz][cIndex] = vertex;
+          segment[index] = vertex;
+          if (cIndex === 0) {
+            coordinates[dz][4] = vertex;
+          }
+        }
+
+        if (draggingSide) {
+          segmentData.segment[0][prevCoord] = vertex[prevCoord];
+          segmentData.segment[1][prevCoord] = vertex[prevCoord];
+          segmentData.prevSegment.segment[1][prevCoord] = vertex[prevCoord];
+          segmentData.nextSegment.segment[0][prevCoord] = vertex[prevCoord];
+        } else if (index === 1) {
+          segment[0][prevCoord] = vertex[prevCoord];
+          segmentData.prevSegment.segment[1][prevCoord] = vertex[prevCoord];
+        } else if (index === 0) {
+          segment[1][nextCoord] = vertex[nextCoord];
+          segmentData.nextSegment.segment[0][nextCoord] = vertex[nextCoord];
+        }
+        break;
       case ol.geom.GeometryType.MULTI_POLYGON:
         coordinates = geometry.getCoordinates();
         coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
@@ -749,6 +835,10 @@ ol.interaction.Modify.handleUpEvent_ = function(evt) {
       circumferenceSegmentData.segment[0] = circumferenceSegmentData.segment[1] = coordinates;
       this.rBush_.update(centerGeometry.getExtent(), centerSegmentData);
       this.rBush_.update(geometry.getExtent(), circumferenceSegmentData);
+    } else if (geometry.getType() === ol.geom.GeometryType.RECTANGLE) {
+      this.rBush_.update(ol.extent.boundingExtent(segmentData.segment), segmentData);
+      this.rBush_.update(ol.extent.boundingExtent(segmentData.prevSegment.segment), segmentData.prevSegment);
+      this.rBush_.update(ol.extent.boundingExtent(segmentData.nextSegment.segment), segmentData.nextSegment);
     } else {
       this.rBush_.update(ol.extent.boundingExtent(segmentData.segment),
           segmentData);

@@ -355,7 +355,8 @@ ol.format.GeoJSON.GEOMETRY_WRITERS_ = {
   'MultiLineString': ol.format.GeoJSON.writeMultiLineStringGeometry_,
   'MultiPolygon': ol.format.GeoJSON.writeMultiPolygonGeometry_,
   'GeometryCollection': ol.format.GeoJSON.writeGeometryCollectionGeometry_,
-  'Circle': ol.format.GeoJSON.writeEmptyGeometryCollectionGeometry_
+  'Circle': ol.format.GeoJSON.writeEmptyGeometryCollectionGeometry_,
+  'Rectangle': ol.format.GeoJSON.writePolygonGeometry_
 };
 
 

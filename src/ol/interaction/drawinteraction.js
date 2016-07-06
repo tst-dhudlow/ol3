@@ -22,6 +22,7 @@ goog.require('ol.geom.MultiPoint');
 goog.require('ol.geom.MultiPolygon');
 goog.require('ol.geom.Point');
 goog.require('ol.geom.Polygon');
+goog.require('ol.geom.Rectangle');
 goog.require('ol.geom.SimpleGeometry');
 goog.require('ol.interaction.InteractionProperty');
 goog.require('ol.interaction.Pointer');
@@ -183,6 +184,37 @@ ol.interaction.Draw = function(options) {
             coordinates[0], coordinates[1]);
         circle.setCenterAndRadius(coordinates[0], Math.sqrt(squaredLength));
         return circle;
+      };
+    } else if (this.type_ === ol.geom.GeometryType.RECTANGLE) {
+      /**
+       * @param {ol.Coordinate|Array.<ol.Coordinate>|Array.<Array.<ol.Coordinate>>} coordinates
+       *     The coordinates.
+       * @param {ol.geom.SimpleGeometry=} opt_geometry Optional geometry.
+       * @return {ol.geom.SimpleGeometry} A geometry.
+       */
+      geometryFunction = function(coordinates, opt_geometry) {
+        // The top, left, bottom, and right variables don't necessarily match their names
+        // (top could actually be the bottom, etc). The names are given just to make visualizing
+        // the operation easier, and the calculations are the same anyway.
+        var top = coordinates[0][0],
+            left = coordinates[0][1],
+            bottom = coordinates[1][0],
+            right = coordinates[1][1];
+
+        var coords = [[
+          [top, left],
+          [top, right],
+          [bottom, right],
+          [bottom, left],
+          [top, left] // Close the polygon
+        ]];
+
+        // Create and update the geometry object as needed.
+        if (!opt_geometry) {
+          opt_geometry = new ol.geom.Rectangle(null);
+        }
+        opt_geometry.setCoordinates(coords);
+        return opt_geometry;
       };
     } else {
       var Constructor;
@@ -407,6 +439,8 @@ ol.interaction.Draw.handleUpEvent_ = function(event) {
         this.finishDrawing();
       }
     } else if (this.mode_ === ol.interaction.DrawMode.CIRCLE) {
+      this.finishDrawing();
+    } else if (this.mode_ === ol.interaction.DrawMode.RECTANGLE) {
       this.finishDrawing();
     } else if (this.atFinish_(event)) {
       if (this.finishCondition_(event)) {
@@ -844,6 +878,8 @@ ol.interaction.Draw.getMode_ = function(type) {
     mode = ol.interaction.DrawMode.POLYGON;
   } else if (type === ol.geom.GeometryType.CIRCLE) {
     mode = ol.interaction.DrawMode.CIRCLE;
+  } else if (type === ol.geom.GeometryType.RECTANGLE) {
+    mode = ol.interaction.DrawMode.RECTANGLE;
   }
   goog.asserts.assert(mode !== undefined, 'mode should be defined');
   return mode;
@@ -859,5 +895,6 @@ ol.interaction.DrawMode = {
   POINT: 'Point',
   LINE_STRING: 'LineString',
   POLYGON: 'Polygon',
-  CIRCLE: 'Circle'
+  CIRCLE: 'Circle',
+  RECTANGLE: 'Rectangle'
 };

@@ -13,7 +13,7 @@ goog.require('ol.proj.Units');
 /**
  * The geometry type. One of `'Point'`, `'LineString'`, `'LinearRing'`,
  * `'Polygon'`, `'MultiPoint'`, `'MultiLineString'`, `'MultiPolygon'`,
- * `'GeometryCollection'`, `'Circle'`.
+ * `'GeometryCollection'`, `'Circle'`, `'Rectangle'`.
  * @enum {string}
  */
 ol.geom.GeometryType = {
@@ -25,7 +25,8 @@ ol.geom.GeometryType = {
   MULTI_LINE_STRING: 'MultiLineString',
   MULTI_POLYGON: 'MultiPolygon',
   GEOMETRY_COLLECTION: 'GeometryCollection',
-  CIRCLE: 'Circle'
+  CIRCLE: 'Circle',
+  RECTANGLE: 'Rectangle'
 };
 
 

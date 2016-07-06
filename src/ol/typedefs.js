@@ -335,7 +335,9 @@ ol.MapOptionsInternal;
  *            geometry: ol.geom.SimpleGeometry,
  *            index: (number|undefined),
  *            segment: Array.<ol.Extent>,
- *            featureSegments: (Array.<ol.ModifySegmentDataType>|undefined)}}
+ *            featureSegments: (Array.<ol.ModifySegmentDataType>|undefined),
+ *            nextSegment: (ol.ModifySegmentDataType|undefined),
+ *            prevSegment: (ol.ModifySegmentDataType|undefined)}}
  */
 ol.ModifySegmentDataType;
 
